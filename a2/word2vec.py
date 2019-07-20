@@ -16,9 +16,7 @@ def sigmoid(x):
     s -- sigmoid(x)
     """
 
-    ### YOUR CODE HERE
-
-    ### END YOUR CODE
+    s = 1 / (1 + np.exp(-x))
 
     return s
 
@@ -56,8 +54,16 @@ def naiveSoftmaxLossAndGradient(
 
     ### Please use the provided softmax function (imported earlier in this file)
     ### This numerically stable implementation helps you avoid issues pertaining
-    ### to integer overflow. 
+    ### to integer overflow.
 
+    y = np.zeros(outsideVectors.shape[0])
+    y[outsideWordIdx] = 1
+
+    y_hat = softmax(np.dot(outsideVectors, centerWordVec))
+
+    loss = -np.log(y_hat[outsideWordIdx])
+    gradCenterVec = np.dot(outsideVectors.T, y_hat - y)
+    gradOutsideVecs = np.dot((y_hat - y).reshape(-1, 1), centerWordVec.reshape(1, -1))
 
     ### END YOUR CODE
 
@@ -105,7 +111,21 @@ def negSamplingLossAndGradient(
     ### YOUR CODE HERE
 
     ### Please use your implementation of sigmoid in here.
+    gradOutsideVecs = np.zeros(outsideVectors.shape)
+    u = outsideVectors[indices]
+    y = np.zeros((len(indices)))
+    y[0] = 1
+    z = np.dot(u, centerWordVec)
+    preds = sigmoid(z)
 
+    loss = -(y * np.log(preds) + (1 - y) * np.log(1 - preds)).sum()
+
+    gradCenterVec = u.T.dot(preds - y)
+
+    gradOut = (preds - y).reshape(-1, 1).dot(centerWordVec.reshape(1, -1))
+    gradOutsideVecs[outsideWordIdx] += gradOut[0]
+    for i, ind in enumerate(negSampleWordIndices):
+        gradOutsideVecs[ind] += gradOut[i + 1]
 
     ### END YOUR CODE
 
@@ -148,6 +168,15 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
     gradOutsideVectors = np.zeros(outsideVectors.shape)
 
     ### YOUR CODE HERE
+
+    center_ind = word2Ind[currentCenterWord]
+    centerWordVec = centerWordVectors[center_ind]
+    for out_word in outsideWords:
+        outsideWordIdx = word2Ind[out_word]
+        L, gradC, gradO = word2vecLossAndGradient(centerWordVec, outsideWordIdx, outsideVectors, dataset)
+        loss += L
+        gradCenterVecs[center_ind] += gradC
+        gradOutsideVectors += gradO
 
     ### END YOUR CODE
 
