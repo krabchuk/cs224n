@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class ParserModel(nn.Module):
     """ Feedforward neural network with an embedding layer and single hidden layer.
     The ParserModel will predict which transition should be applied to a
@@ -31,7 +32,7 @@ class ParserModel(nn.Module):
         - For further documentation on "nn.Module" please see https://pytorch.org/docs/stable/nn.html.
     """
     def __init__(self, embeddings, n_features=36,
-        hidden_size=200, n_classes=3, dropout_prob=0.5):
+                 hidden_size=200, n_classes=3, dropout_prob=0.5):
         """ Initialize the parser model.
 
         @param embeddings (Tensor): word embeddings (num_words, embedding_size)
@@ -48,6 +49,14 @@ class ParserModel(nn.Module):
         self.hidden_size = hidden_size
         self.pretrained_embeddings = nn.Embedding(embeddings.shape[0], self.embed_size)
         self.pretrained_embeddings.weight = nn.Parameter(torch.tensor(embeddings))
+
+        self.embed_to_hidden = nn.Linear(self.embed_size, self.hidden_size)
+        self.embed_to_hidden.weight = nn.init.xavier_uniform()
+
+        self.dropout = nn.Dropout(self.dropout_prob)
+
+        self.hidden_to_logits = nn.Linear(self.hidden_size, self.n_classes)
+        self.hidden_to_logits.weight = nn.init.xavier_uniform()
 
         ### YOUR CODE HERE (~5 Lines)
         ### TODO:
