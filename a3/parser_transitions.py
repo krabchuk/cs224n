@@ -8,6 +8,7 @@ Sahil Chopra <schopra8@stanford.edu>
 
 import sys
 
+
 class PartialParse(object):
     def __init__(self, sentence):
         """Initializes this partial parse.
@@ -17,6 +18,10 @@ class PartialParse(object):
         """
         # The sentence being parsed is kept for bookkeeping purposes. Do not alter it in your code.
         self.sentence = sentence
+        self.stack = []
+        self.stack.append('ROOT')
+        self.buffer = [word for word in sentence]
+        self.dependencies = []
 
         ### YOUR CODE HERE (3 Lines)
         ### Your code should initialize the following fields:
@@ -49,6 +54,15 @@ class PartialParse(object):
         ###         1. Shift
         ###         2. Left Arc
         ###         3. Right Arc
+
+        if transition == "S":
+            self.stack.append(self.buffer.pop(0))
+        elif transition == "LA":
+            self.dependencies.append((self.stack[-1], self.stack.pop(-2)))
+        elif transition == "RA":
+            self.dependencies.append((self.stack[-2], self.stack.pop(-1)))
+        else:
+            raise KeyError("Wrong argument")
 
 
         ### END YOUR CODE
@@ -85,7 +99,25 @@ def minibatch_parse(sentences, model, batch_size):
                                                     same as in sentences (i.e., dependencies[i] should
                                                     contain the parse for sentences[i]).
     """
-    dependencies = []
+
+    partial_parses = [PartialParse(sentence) for sentence in sentences]
+    unfinished_parses = partial_parses[:]
+
+    while len(unfinished_parses) > 0:
+        minibatch_len = batch_size if len(unfinished_parses) >= batch_size else len(unfinished_parses)
+        minibatch = unfinished_parses[:minibatch_len]
+        transitions = model.predict(minibatch)
+        offset = 0
+        for i, parse in enumerate(minibatch):
+            if len(parse.buffer) == 0 and len(parse.stack) == 1:
+                unfinished_parses.pop(i + offset)
+                offset -= 1
+            else:
+                parse.parse_step(transitions[i])
+
+
+    dependencies = [parse.dependencies for parse in partial_parses]
+
 
     ### YOUR CODE HERE (~8-10 Lines)
     ### TODO:

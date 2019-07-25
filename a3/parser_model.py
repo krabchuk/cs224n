@@ -50,13 +50,13 @@ class ParserModel(nn.Module):
         self.pretrained_embeddings = nn.Embedding(embeddings.shape[0], self.embed_size)
         self.pretrained_embeddings.weight = nn.Parameter(torch.tensor(embeddings))
 
-        self.embed_to_hidden = nn.Linear(self.embed_size, self.hidden_size)
-        self.embed_to_hidden.weight = nn.init.xavier_uniform()
+        self.embed_to_hidden = nn.Linear(self.n_features * self.embed_size, self.hidden_size)
+        nn.init.xavier_uniform(self.embed_to_hidden.weight)
 
         self.dropout = nn.Dropout(self.dropout_prob)
 
         self.hidden_to_logits = nn.Linear(self.hidden_size, self.n_classes)
-        self.hidden_to_logits.weight = nn.init.xavier_uniform()
+        nn.init.xavier_uniform(self.hidden_to_logits.weight)
 
         ### YOUR CODE HERE (~5 Lines)
         ### TODO:
@@ -100,6 +100,8 @@ class ParserModel(nn.Module):
             @return x (Tensor): tensor of embeddings for words represented in t
                                 (batch_size, n_features * embed_size)
         """
+
+        x = self.pretrained_embeddings(t).view(-1, self.n_features * self.embed_size)
         ### YOUR CODE HERE (~1-3 Lines)
         ### TODO:
         ###     1) Use `self.pretrained_embeddings` to lookup the embeddings for the input tokens in `t`.
@@ -137,6 +139,11 @@ class ParserModel(nn.Module):
         @return logits (Tensor): tensor of predictions (output after applying the layers of the network)
                                  without applying softmax (batch_size, n_classes)
         """
+
+        embeddings = self.embedding_lookup(t)
+        hidden = F.relu(self.embed_to_hidden(embeddings))
+        dropout = self.dropout(hidden)
+        logits = self.hidden_to_logits(dropout)
         ###  YOUR CODE HERE (~3-5 lines)
         ### TODO:
         ###     1) Apply `self.embedding_lookup` to `t` to get the embeddings
